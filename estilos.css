@@ -1,0 +1,260 @@
+:root{
+  --cafe-oscuro:#1f1410;
+  --cafe-medio:#2c1c16;
+  --cafe-claro:#3a251d;
+  --dorado:#d2a55a;
+}
+
+.bg-cafe{
+  background: radial-gradient(circle at top, var(--cafe-claro), var(--cafe-oscuro));
+  min-height:100vh;
+}
+
+.barra-cafe{
+  background: rgba(20,12,10,0.85);
+  backdrop-filter: blur(8px);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.tarjeta-vidrio{
+  background: rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:18px;
+  box-shadow:0 12px 30px rgba(0,0,0,0.35);
+}
+
+/* Panel base */
+.panel-iot{ position:relative; }
+.panel-iot img{ width:100%; display:block; border-radius:25px; }
+
+/* Controles encima de imagen */
+.grupo{
+  position:absolute;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background: rgba(0,0,0,0.35);
+  border:1px solid rgba(255,255,255,0.15);
+  padding:10px 12px;
+  border-radius:16px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.35);
+}
+
+.grupo .lbl{
+  font-size:12px;
+  color: rgba(255,255,255,0.78);
+  width:78px;
+}
+
+/* Botones homogéneos (Bootstrap a veces cambia padding) */
+.grupo button.btn{
+  width:38px;
+  height:34px;
+  padding:0 !important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  line-height:1;
+  border-radius:8px;
+  border-width:2px;
+  transition: transform .08s ease, filter .12s ease, box-shadow .12s ease;
+}
+.grupo button.btn:active{ transform: scale(0.98); }
+
+/* Glow / diferencia ON-OFF */
+.grupo button.btn-success{
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.18), 0 0 18px rgba(34,197,94,0.45);
+  filter: saturate(1.05);
+}
+.grupo button.btn-danger{
+  box-shadow: 0 0 0 2px rgba(239,68,68,0.18), 0 0 18px rgba(239,68,68,0.45);
+  filter: saturate(1.05);
+}
+.grupo button.btn-outline-success{
+  box-shadow: none;
+  opacity: .9;
+}
+.grupo button.btn-outline-danger{
+  box-shadow: none;
+  opacity: .9;
+}
+
+/* Slider */
+.grupo input[type="range"]{
+  width:150px;
+}
+
+/* Posiciones */
+.g-purga{ top:10%; left:85%; }
+.g-lanceta{ top:17%; left:85%; }
+.g-extraccion{ top:27%; left:85%; }
+.g-filtro{ top:36%; left:85%; }
+.g-agua{ top:43%; left:85%; }
+
+.g-crepera{ top:55%; left:40%; }
+.g-molino{ top:88%; left:48%; }
+
+
+/* =========================
+   MOLINO - 4 HORIZONTALES
+========================= */
+.g-molino{
+  border-radius:90px;
+  display:flex;
+  gap:100px;
+  top:90%; left:23%; 
+}
+
+.g-molino .lbl{
+  width:auto;
+  font-size:13px;
+  min-width:60px;
+}
+
+/* AQUÍ CAMBIÓ: 4 columnas para que salgan en una fila */
+.molino-grid{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:8px;
+  min-width: 420px;  /* para que sí quepan horizontal */
+}
+
+.molino-grid .btn{
+  width:500%;
+  height:100px;
+  white-space:nowrap;
+  border-radius:100px;
+  font-weight:800;
+}
+
+
+/* =========================
+   CREPERA VERTICAL (como tu dibujo)
+========================= */
+.g-crepera-vertical{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  gap:10px !important;
+
+  /* tamaño del panel (más compacto) */
+  width: 300px;
+  padding: 14px 16px !important;
+  border-radius: 16px !important;
+}
+
+/* título centrado arriba */
+.g-crepera-vertical .lbl-top{
+  width:auto !important;
+  font-size:19px !important;
+  text-align:center;
+  margin:0 !important;
+}
+
+/* media luna centrada */
+.g-crepera-vertical .crepera-gauge{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  width:70%;
+}
+.g-crepera-vertical .crepera-svg{
+  width: 120px;     /* ajusta 190-230 si quieres */
+  height: auto;
+  display:block;
+}
+
+/* slider justo abajo */
+.g-crepera-vertical .crepera-slider{
+  width: 58%;
+}
+.g-crepera-vertical .crepera-slider input[type="range"]{
+  width: 100%;
+}
+
+/* botones en 1 fila */
+.g-crepera-vertical .crepera-botones-row{
+  width:100%;
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:10px;
+}
+.g-crepera-vertical .crepera-botones-row .btn{
+  width:100%;
+  height:34px;
+  border-radius:10px;
+  font-weight:700;
+}
+
+/* responsive: si no caben, 2 filas */
+@media (max-width: 400px){
+  .g-crepera-vertical{
+    width: 68%;
+  }
+  .g-crepera-vertical .crepera-botones-row{
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.g-crepera{ top:50%; left:55%; }
+/* =========================
+   MOLINO BOTONES CAFÉ
+========================= */
+
+.btn-mol-on{
+  background:#d2a55a !important;
+  color:#1f1410 !important;
+  border:2px solid #c38c35 !important;
+  box-shadow:0 0 14px rgba(210,165,90,.5);
+  font-weight:800;
+}
+
+.btn-mol-off{
+  background:rgba(255,255,255,.12) !important;
+  color:white !important;
+  border:1px solid rgba(255,255,255,.2) !important;
+}
+.grid-3{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 992px){
+  .grid-3{ grid-template-columns: 1fr; }
+}
+
+.mini-card{
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.punto{
+  display:inline-block;
+  width:10px; height:10px;
+  border-radius:50%;
+  background: #24d27c;
+  box-shadow: 0 0 0 3px rgba(36,210,124,.12);
+}
+.punto.apagada{
+  background:#9aa3ad;
+  box-shadow: 0 0 0 3px rgba(154,163,173,.12);
+}
+.punto.alerta{
+  background:#ffb020;
+  box-shadow: 0 0 0 3px rgba(255,176,32,.16);
+}
+
+.estado{
+  font-weight:600;
+}
+.estado-alerta{
+  background: rgba(255,176,32,.15);
+  color: #ffcc66;
+  border: 1px solid rgba(255,176,32,.25);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
