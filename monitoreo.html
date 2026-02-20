@@ -36,32 +36,19 @@
         <div class="col-lg-4">
           <div class="tarjeta-vidrio p-3 h-100">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="text-white mb-0">Estatus en vivo</h5>
+              <h5 class="text-white mb-0">Estatus en vivo (activas)</h5>
               <span id="badgeLive" class="badge text-bg-info">Auto: 2s</span>
             </div>
 
-            <div class="mb-3">
-              <div class="text-white-50 small">Cafetera</div>
-              <div class="text-white fw-semibold" id="st_cafetera">—</div>
-              <div class="text-warning small" id="al_cafetera"></div>
-            </div>
-
-            <div class="mb-3">
-              <div class="text-white-50 small">Crepera</div>
-              <div class="text-white fw-semibold" id="st_crepera">—</div>
-              <div class="text-warning small" id="al_crepera"></div>
-            </div>
-
-            <div class="mb-3">
-              <div class="text-white-50 small">Molino</div>
-              <div class="text-white fw-semibold" id="st_molino">—</div>
-              <div class="text-warning small" id="al_molino"></div>
+            <!-- AQUÍ SE PINTAN TODAS LAS CAFETERÍAS ACTIVAS -->
+            <div id="liveContainer" class="d-grid gap-3">
+              <div class="text-white-50 small">Cargando...</div>
             </div>
 
             <hr class="border-light opacity-25">
 
             <div class="d-flex gap-2">
-              <button class="btn btn-light fw-semibold" id="btnRefrescar">Refrescar</button>
+              <button class="btn btn-light fw-semibold" id="btnRefrescar" type="button">Refrescar</button>
               <span id="estadoConexion" class="badge rounded-pill text-bg-warning align-self-center">Conectando...</span>
             </div>
           </div>
@@ -77,7 +64,6 @@
                 <label class="text-white-50 small mb-0">Cafetería:</label>
                 <select id="filtroCafeteria" class="form-select form-select-sm" style="width: 220px;">
                   <option value="todas">Todas</option>
-                  <!-- se llena con /cafeterias -->
                 </select>
 
                 <label class="text-white-50 small mb-0 ms-1">Dispositivo:</label>
@@ -86,6 +72,7 @@
                   <option value="cafetera">Cafetera</option>
                   <option value="crepera">Crepera</option>
                   <option value="molino">Molino</option>
+                  <option value="admin">Admin</option>
                 </select>
               </div>
             </div>
@@ -117,7 +104,8 @@
       </div>
     </div>
   </main>
-<footer class="footer-cafe py-4 mt-auto">
+
+  <footer class="footer-cafe py-4 mt-auto">
     <div class="container text-center">
       <div class="text-white-50 small">
         <div>Coffee IoT · Panel de control y monitoreo · 2026</div>
@@ -132,247 +120,277 @@
       </div>
     </div>
   </footer>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-/* =======================
-   MONITOREO - ✅ filtros persistentes + últimos 10
-======================= */
-const API_BASE = "https://698a18b7c04d974bc6a1598e.mockapi.io/api/v1";
-const API_CAF  = `${API_BASE}/cafeterias`;
-const API_HIST = `${API_BASE}/historial_estados`;
+document.addEventListener("DOMContentLoaded", () => {
 
-const $apiBase = document.getElementById("apiBase");
-const $estadoConexion = document.getElementById("estadoConexion");
-const $tbodyHist = document.getElementById("tbodyHist");
-const $filtroDisp = document.getElementById("filtroDisp");
-const $filtroCafeteria = document.getElementById("filtroCafeteria");
-const $lblMostrando = document.getElementById("lblMostrando");
+  const API_BASE = "https://698a18b7c04d974bc6a1598e.mockapi.io/api/v1";
+  const API_CAF  = `${API_BASE}/cafeterias`;
+  const API_HIST = `${API_BASE}/historial_estados`;
 
-if ($apiBase) $apiBase.textContent = API_BASE;
+  const $apiBase = document.getElementById("apiBase");
+  const $estadoConexion = document.getElementById("estadoConexion");
+  const $tbodyHist = document.getElementById("tbodyHist");
+  const $filtroDisp = document.getElementById("filtroDisp");
+  const $filtroCafeteria = document.getElementById("filtroCafeteria");
+  const $lblMostrando = document.getElementById("lblMostrando");
+  const $liveContainer = document.getElementById("liveContainer");
 
-const LS_KEY_CAF  = "monitoreo_filtro_cafeteria";
-const LS_KEY_DISP = "monitoreo_filtro_dispositivo";
+  if ($apiBase) $apiBase.textContent = API_BASE;
 
-function setConexion(ok){
-  if(!$estadoConexion) return;
-  if(ok){
-    $estadoConexion.textContent = "Conectado";
-    $estadoConexion.className = "badge rounded-pill text-bg-success align-self-center";
-  }else{
-    $estadoConexion.textContent = "Error API";
-    $estadoConexion.className = "badge rounded-pill text-bg-danger align-self-center";
-  }
-}
+  const LS_KEY_CAF  = "monitoreo_filtro_cafeteria";
+  const LS_KEY_DISP = "monitoreo_filtro_dispositivo";
 
-function horaCorta(iso){
-  if(!iso) return "—";
-  try { return new Date(iso).toLocaleString(); } catch { return "—"; }
-}
-
-function pintarEstatus(idSt, idAl, texto, alertaActiva, msgAlerta){
-  const st = document.getElementById(idSt);
-  const al = document.getElementById(idAl);
-  if(st) st.textContent = texto;
-  if(al) al.textContent = alertaActiva ? `⚠ ${msgAlerta || "Alerta activa"}` : "";
-}
-
-// ============ FILTROS (persistentes) ============
-function guardarFiltros(){
-  try{
-    localStorage.setItem(LS_KEY_CAF,  $filtroCafeteria?.value ?? "todas");
-    localStorage.setItem(LS_KEY_DISP, $filtroDisp?.value ?? "todos");
-  }catch{}
-}
-
-function restaurarFiltros(){
-  try{
-    const caf = localStorage.getItem(LS_KEY_CAF);
-    const disp = localStorage.getItem(LS_KEY_DISP);
-    if($filtroCafeteria && caf) $filtroCafeteria.value = caf;
-    if($filtroDisp && disp) $filtroDisp.value = disp;
-  }catch{}
-}
-
-// ============ Cargar cafeterías en combo ============
-async function cargarComboCafeterias(){
-  try{
-    const r = await fetch(API_CAF);
-    if(!r.ok) throw new Error("No se pudo leer cafeterias");
-    const lista = await r.json();
-    const arr = Array.isArray(lista) ? lista : [];
-
-    const selected = ($filtroCafeteria?.value) || "todas";
-
-    // reconstruye opciones sin perder selección
-    $filtroCafeteria.innerHTML = `<option value="todas">Todas</option>` +
-      arr.map(c => `<option value="${c.id}">${c.nombre || ("Cafetería " + c.id)}</option>`).join("");
-
-    // restaura selección previa si existe
-    if(selected) $filtroCafeteria.value = selected;
-
-    // si lo seleccionado ya no existe, cae a "todas"
-    if($filtroCafeteria.value !== selected && selected !== "todas"){
-      $filtroCafeteria.value = "todas";
-      guardarFiltros();
-    }
-  }catch(e){
-    console.error(e);
-  }
-}
-
-// ============ LIVE: muestra la cafetería seleccionada ============
-function estadoCafeteraBonito(caf){
-  const v = caf?.variables || {};
-  const map = [
-    ["purga_on","Purgación de lanceta"],
-    ["lanceta_on","Lanceta"],
-    ["extraccion_on","Extracción del café"],
-    ["filtro_on","Filtro de café"],
-    ["agua_on","Salida de agua caliente"],
-  ];
-  const activos = map.filter(([k]) => !!v[k]).map(([,l]) => l);
-  return activos.length ? `encendida: ${activos.join(", ")}` : "apagada";
-}
-function estadoCreperaBonito(cre){
-  const t = Number(cre?.variables?.temperatura_c ?? 0);
-  if(t === 0) return "apagada — 0°C";
-  return `${cre.estado} — ${t}°C`;
-}
-function estadoMolinoBonito(mol){
-  return mol.estado || `molienda_${mol?.variables?.molienda_tipo || "medio"}`;
-}
-
-async function cargarLive(){
-  try{
-    const r = await fetch(API_CAF);
-    if(!r.ok) throw new Error("No se pudo leer cafeterias");
-    const lista = await r.json();
-    const arr = Array.isArray(lista) ? lista : [];
-
-    // elige cafetería según filtro
-    const cafId = $filtroCafeteria?.value || "todas";
-    let c = null;
-    if(cafId === "todas"){
-      c = arr[0] || null; // si es todas, mostramos la primera en vivo (solo panel)
+  function setConexion(ok){
+    if(!$estadoConexion) return;
+    if(ok){
+      $estadoConexion.textContent = "Conectado";
+      $estadoConexion.className = "badge rounded-pill text-bg-success align-self-center";
     }else{
-      c = arr.find(x => String(x.id) === String(cafId)) || null;
+      $estadoConexion.textContent = "Error API";
+      $estadoConexion.className = "badge rounded-pill text-bg-danger align-self-center";
     }
+  }
 
-    if(!c){
-      pintarEstatus("st_cafetera","al_cafetera","—",false,"");
-      pintarEstatus("st_crepera","al_crepera","—",false,"");
-      pintarEstatus("st_molino","al_molino","—",false,"");
-      setConexion(true);
-      return;
+  function fechaSeguraISO(h){
+    return h?.fecha_hora || h?.createdAt || h?.updatedAt || "";
+  }
+  function fechaSeguraMs(h){
+    const iso = fechaSeguraISO(h);
+    const t = iso ? new Date(iso).getTime() : 0;
+    return Number.isFinite(t) ? t : 0;
+  }
+  function horaCortaPorHist(h){
+    const iso = fechaSeguraISO(h);
+    if(!iso) return "—";
+    try { return new Date(iso).toLocaleString(); } catch { return "—"; }
+  }
+
+  // ====== filtros persistentes ======
+  function guardarFiltros(){
+    try{
+      localStorage.setItem(LS_KEY_CAF,  $filtroCafeteria?.value ?? "todas");
+      localStorage.setItem(LS_KEY_DISP, $filtroDisp?.value ?? "todos");
+    }catch{}
+  }
+  function restaurarFiltros(){
+    try{
+      const caf = localStorage.getItem(LS_KEY_CAF);
+      const disp = localStorage.getItem(LS_KEY_DISP);
+      if($filtroCafeteria && caf) $filtroCafeteria.value = caf;
+      if($filtroDisp && disp) $filtroDisp.value = disp;
+    }catch{}
+  }
+
+  // ====== combo cafeterías ======
+  async function cargarComboCafeterias(){
+    try{
+      const r = await fetch(API_CAF);
+      if(!r.ok) throw new Error("No se pudo leer cafeterias");
+      const lista = await r.json();
+      const arr = Array.isArray(lista) ? lista : [];
+
+      const selected = ($filtroCafeteria?.value) || "todas";
+
+      $filtroCafeteria.innerHTML =
+        `<option value="todas">Todas</option>` +
+        arr.map(c => `<option value="${c.id}">${c.nombre || ("Cafetería " + c.id)}</option>`).join("");
+
+      if(selected) $filtroCafeteria.value = selected;
+
+      if($filtroCafeteria.value !== selected && selected !== "todas"){
+        $filtroCafeteria.value = "todas";
+        guardarFiltros();
+      }
+    }catch(e){
+      console.error(e);
     }
+  }
 
+  // ====== helpers estatus ======
+  function estadoCafeteraBonito(caf){
+    const v = caf?.variables || {};
+    const map = [
+      ["purga_on","Purgación de lanceta"],
+      ["lanceta_on","Lanceta"],
+      ["extraccion_on","Extracción del café"],
+      ["filtro_on","Filtro de café"],
+      ["agua_on","Salida de agua caliente"],
+    ];
+    const activos = map.filter(([k]) => !!v[k]).map(([,l]) => l);
+    return activos.length ? `encendida: ${activos.join(", ")}` : "apagada";
+  }
+  function estadoCreperaBonito(cre){
+    const t = Number(cre?.variables?.temperatura_c ?? 0);
+    if(t === 0) return "apagada — 0°C";
+    return `${cre.estado} — ${t}°C`;
+  }
+  function estadoMolinoBonito(mol){
+    return mol.estado || `molienda_${mol?.variables?.molienda_tipo || "medio"}`;
+  }
+
+  function liveCardHTML(c){
     const caf = c.dispositivos?.cafetera;
     const cre = c.dispositivos?.crepera;
     const mol = c.dispositivos?.molino;
 
-    const txtCaf = caf ? `${caf.nombre}: ${estadoCafeteraBonito(caf)}` : "—";
-    const txtCre = cre ? `${cre.nombre}: ${estadoCreperaBonito(cre)}` : "—";
-    const txtMol = mol ? `${mol.nombre}: ${estadoMolinoBonito(mol)}` : "—";
+    const cafTxt = caf ? `${caf.nombre}: ${estadoCafeteraBonito(caf)}` : "—";
+    const creTxt = cre ? `${cre.nombre}: ${estadoCreperaBonito(cre)}` : "—";
+    const molTxt = mol ? `${mol.nombre}: ${estadoMolinoBonito(mol)}` : "—";
 
-    pintarEstatus("st_cafetera","al_cafetera", txtCaf, !!caf?.alerta_activa, caf?.mensaje_alerta);
-    pintarEstatus("st_crepera","al_crepera", txtCre, !!cre?.alerta_activa, cre?.mensaje_alerta);
-    pintarEstatus("st_molino","al_molino", txtMol, !!mol?.alerta_activa, mol?.mensaje_alerta);
+    const alCaf = caf?.alerta_activa ? `⚠ ${caf?.mensaje_alerta || "Alerta activa"}` : "";
+    const alCre = cre?.alerta_activa ? `⚠ ${cre?.mensaje_alerta || "Alerta activa"}` : "";
+    const alMol = mol?.alerta_activa ? `⚠ ${mol?.mensaje_alerta || "Alerta activa"}` : "";
 
-    setConexion(true);
-  }catch(e){
-    console.error(e);
-    setConexion(false);
+    return `
+      <div class="p-2 rounded-4" style="border:1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.18);">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="text-white fw-semibold">${c.nombre || ("Cafetería " + c.id)}</div>
+          <span class="badge text-bg-success">Activa</span>
+        </div>
+
+        <div class="mt-2">
+          <div class="text-white-50 small">Cafetera</div>
+          <div class="text-white fw-semibold small">${cafTxt}</div>
+          <div class="text-warning small">${alCaf}</div>
+        </div>
+
+        <div class="mt-2">
+          <div class="text-white-50 small">Crepera</div>
+          <div class="text-white fw-semibold small">${creTxt}</div>
+          <div class="text-warning small">${alCre}</div>
+        </div>
+
+        <div class="mt-2">
+          <div class="text-white-50 small">Molino</div>
+          <div class="text-white fw-semibold small">${molTxt}</div>
+          <div class="text-warning small">${alMol}</div>
+        </div>
+      </div>
+    `;
   }
-}
 
-// ============ HISTORIAL: últimos 10 según filtros ============
-function filaHist(h){
-  const alerta = h.alerta_activa ? "Sí" : "No";
+  // ====== LIVE: TODAS ACTIVAS ======
+  async function cargarLive(){
+    try{
+      const r = await fetch(API_CAF);
+      if(!r.ok) throw new Error("No se pudo leer cafeterias");
+      const lista = await r.json();
+      const arr = Array.isArray(lista) ? lista : [];
 
-  const disp = (h.dispositivo_nombre || h.dispositivo_tipo || "—").toString();
-  const caf = (h.cafeteria_nombre || "").toString();
-  const msg = (h.mensaje || "").trim();
+      // si el filtro está en una cafetería específica, mostramos SOLO ESA (si está activa)
+      const cafId = $filtroCafeteria?.value || "todas";
+      let activas = arr.filter(x => x && x.activa === true);
 
-  return `
-    <tr>
-      <td class="text-white-50">${horaCorta(h.fecha_hora)}</td>
-      <td class="text-white">
-        ${disp}
-        <div class="text-white-50 small">${caf}</div>
-      </td>
-      <td class="text-white fw-semibold">${h.estado || "—"}</td>
-      <td class="text-warning small">${msg ? "⚠ " + msg : ""}</td>
-      <td class="${h.alerta_activa ? "text-warning fw-semibold" : "text-white-50"}">${alerta}</td>
-    </tr>
-  `;
-}
+      if(cafId !== "todas"){
+        activas = activas.filter(x => String(x.id) === String(cafId));
+      }
 
-async function cargarHistorial(){
-  try{
-    const r = await fetch(API_HIST);
-    if(!r.ok) throw new Error("No se pudo leer historial_estados");
-    let data = await r.json();
-    data = Array.isArray(data) ? data : [];
+      if(!$liveContainer) return;
 
-    // ordenar DESC por fecha_hora
-    data.sort((a,b) => new Date(b.fecha_hora).getTime() - new Date(a.fecha_hora).getTime());
+      if(!activas.length){
+        $liveContainer.innerHTML = `<div class="text-white-50 small">No hay cafeterías activas en este momento.</div>`;
+        setConexion(true);
+        return;
+      }
 
-    const cafId = $filtroCafeteria?.value || "todas";
-    const dispTipo = $filtroDisp?.value || "todos";
+      $liveContainer.innerHTML = activas.map(liveCardHTML).join("");
 
-    // filtrar por cafetería
-    if(cafId !== "todas"){
-      data = data.filter(x => String(x.cafeteria_id || "") === String(cafId));
+      setConexion(true);
+    }catch(e){
+      console.error(e);
+      setConexion(false);
+      if($liveContainer){
+        $liveContainer.innerHTML = `<div class="text-white-50 small">Error cargando estatus en vivo.</div>`;
+      }
     }
-
-    // filtrar por tipo de dispositivo
-    if(dispTipo !== "todos"){
-      data = data.filter(x => String(x.dispositivo_tipo || "").toLowerCase() === dispTipo);
-    }
-
-    // ✅ últimos 10
-    data = data.slice(0, 10);
-    if($lblMostrando) $lblMostrando.textContent = String(data.length);
-
-    if(!data.length){
-      $tbodyHist.innerHTML = `<tr><td colspan="5" class="text-white-50">Sin eventos.</td></tr>`;
-      return;
-    }
-
-    $tbodyHist.innerHTML = data.map(filaHist).join("");
-  }catch(e){
-    console.error(e);
-    $tbodyHist.innerHTML = `<tr><td colspan="5" class="text-white-50">Error cargando historial.</td></tr>`;
   }
-}
 
-async function cargarTodo(){
-  // ✅ importantísimo: NO reasignar valores, solo usar los que ya están
-  await Promise.all([cargarLive(), cargarHistorial()]);
-}
+  // ====== HISTORIAL ======
+  function filaHist(h){
+    const disp = (h.dispositivo_nombre || h.dispositivo_tipo || "—").toString();
+    const caf = (h.cafeteria_nombre || "").toString();
+    const msg = (h.mensaje || "").trim();
 
-// Eventos
-document.getElementById("btnRefrescar")?.addEventListener("click", cargarTodo);
+    const alertaTxt = h.alerta_activa ? "Sí" : "No";
+    const msgHtml = msg ? (h.alerta_activa ? `⚠ ${msg}` : msg) : "";
 
-$filtroCafeteria?.addEventListener("change", async ()=>{
-  guardarFiltros();
-  await cargarTodo();
+    return `
+      <tr>
+        <td class="text-white-50">${horaCortaPorHist(h)}</td>
+        <td class="text-white">
+          ${disp}
+          <div class="text-white-50 small">${caf}</div>
+        </td>
+        <td class="text-white fw-semibold">${h.estado || "—"}</td>
+        <td class="${h.alerta_activa ? "text-warning small" : "text-white-50 small"}">${msgHtml}</td>
+        <td class="${h.alerta_activa ? "text-warning fw-semibold" : "text-white-50"}">${alertaTxt}</td>
+      </tr>
+    `;
+  }
+
+  async function cargarHistorial(){
+    try{
+      const r = await fetch(API_HIST);
+      if(!r.ok) throw new Error("No se pudo leer historial_estados");
+      let data = await r.json();
+      data = Array.isArray(data) ? data : [];
+
+      data.sort((a,b) => fechaSeguraMs(b) - fechaSeguraMs(a));
+
+      const cafId = $filtroCafeteria?.value || "todas";
+      const dispTipo = $filtroDisp?.value || "todos";
+
+      if(cafId !== "todas"){
+        data = data.filter(x => String(x.cafeteria_id || "") === String(cafId));
+      }
+
+      if(dispTipo !== "todos"){
+        data = data.filter(x => String(x.dispositivo_tipo || "").toLowerCase() === dispTipo);
+      }
+
+      data = data.slice(0, 10);
+      if($lblMostrando) $lblMostrando.textContent = String(data.length);
+
+      if(!data.length){
+        $tbodyHist.innerHTML = `<tr><td colspan="5" class="text-white-50">Sin eventos.</td></tr>`;
+        return;
+      }
+
+      $tbodyHist.innerHTML = data.map(filaHist).join("");
+    }catch(e){
+      console.error(e);
+      $tbodyHist.innerHTML = `<tr><td colspan="5" class="text-white-50">Error cargando historial.</td></tr>`;
+    }
+  }
+
+  async function cargarTodo(){
+    await Promise.all([cargarLive(), cargarHistorial()]);
+  }
+
+  document.getElementById("btnRefrescar")?.addEventListener("click", cargarTodo);
+
+  $filtroCafeteria?.addEventListener("change", async ()=>{
+    guardarFiltros();
+    await cargarTodo();
+  });
+
+  $filtroDisp?.addEventListener("change", async ()=>{
+    guardarFiltros();
+    await cargarHistorial();
+  });
+
+  (async function init(){
+    restaurarFiltros();
+    await cargarComboCafeterias();
+    restaurarFiltros();
+    await cargarTodo();
+    setInterval(cargarTodo, 2000);
+  })();
+
 });
-
-$filtroDisp?.addEventListener("change", async ()=>{
-  guardarFiltros();
-  await cargarHistorial(); // con cambiar dispositivo no hace falta reload live
-});
-
-// Inicial
-(async function init(){
-  restaurarFiltros();
-  await cargarComboCafeterias(); // llena combo
-  restaurarFiltros();           // reaplica selección luego de llenar options
-  await cargarTodo();
-  setInterval(cargarTodo, 2000);
-})();
   </script>
 </body>
 </html>

@@ -4,10 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin - Coffee IoT</title>
+
   <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/estilos.css"></head>
+  <link rel="stylesheet" href="assets/css/estilos.css">
+</head>
 
 <body class="bg-cafe">
   <nav class="navbar navbar-expand-lg navbar-dark barra-cafe">
@@ -51,7 +53,7 @@
             </div>
           </div>
           <div class="col-md-4">
-            <button id="btnAgregar" class="btn btn-warning w-100 fw-semibold">Agregar cafetería</button>
+            <button id="btnAgregar" type="button" class="btn btn-warning w-100 fw-semibold">Agregar cafetería</button>
           </div>
         </div>
 
@@ -78,7 +80,8 @@
 
     </div>
   </main>
-<footer class="footer-cafe py-4 mt-auto">
+
+  <footer class="footer-cafe py-4 mt-auto">
     <div class="container text-center">
       <div class="text-white-50 small">
         <div>Coffee IoT · Panel de control y monitoreo · 2026</div>
@@ -93,6 +96,7 @@
       </div>
     </div>
   </footer>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
@@ -104,262 +108,265 @@
    - EXTRA : registra en historial_estados para que se vea en Monitoreo
    ========================================================= */
 
-const API_BASE = "https://698a18b7c04d974bc6a1598e.mockapi.io/api/v1";
-const API_CAF  = `${API_BASE}/cafeterias`;
-const API_HIST = `${API_BASE}/historial_estados`;
+document.addEventListener("DOMContentLoaded", () => {
 
-const $tbody = document.getElementById("tbodyAdmin");
-const $inNombre = document.getElementById("inNombreCaf");
-const $btnAgregar = document.getElementById("btnAgregar");
-const $estadoConexion = document.getElementById("estadoConexion");
+  const API_BASE = "https://698a18b7c04d974bc6a1598e.mockapi.io/api/v1";
+  const API_CAF  = `${API_BASE}/cafeterias`;
+  const API_HIST = `${API_BASE}/historial_estados`;
 
-const nowISO = () => new Date().toISOString();
+  const $tbody = document.getElementById("tbodyAdmin");
+  const $inNombre = document.getElementById("inNombreCaf");
+  const $btnAgregar = document.getElementById("btnAgregar");
+  const $estadoConexion = document.getElementById("estadoConexion");
 
-function setConexion(ok){
-  if(!$estadoConexion) return;
-  if(ok){
-    $estadoConexion.textContent = "Conectado";
-    $estadoConexion.className = "badge rounded-pill text-bg-success";
-  }else{
-    $estadoConexion.textContent = "Error API";
-    $estadoConexion.className = "badge rounded-pill text-bg-danger";
+  const nowISO = () => new Date().toISOString();
+
+  function setConexion(ok){
+    if(!$estadoConexion) return;
+    if(ok){
+      $estadoConexion.textContent = "Conectado";
+      $estadoConexion.className = "badge rounded-pill text-bg-success";
+    }else{
+      $estadoConexion.textContent = "Error API";
+      $estadoConexion.className = "badge rounded-pill text-bg-danger";
+    }
   }
-}
 
-/* ========= HISTORIAL ADMIN (para Monitoreo) =========
-   Guardamos un evento tipo ADMIN:
-   - dispositivo_tipo: "ADMIN"
-   - dispositivo_nombre: "Administración"
-   - estado: "Alta cafetería" / "Baja cafetería" / "Eliminar cafetería"
-*/
-async function registrarHistorialAdmin(cafeteria, accion, mensaje){
-  const payload = {
-    cafeteria_id: String(cafeteria?.id ?? ""),
-    cafeteria_nombre: cafeteria?.nombre || "",
-    dispositivo_tipo: "ADMIN",
-    dispositivo_nombre: "Administración",
-    estado: accion || "",
-    alerta_activa: false,
-    mensaje: mensaje || "",
-    fecha_hora: nowISO(),
-    variables: {}
-  };
+  /* ========= HISTORIAL ADMIN (para Monitoreo) ========= */
+  async function registrarHistorialAdmin(cafeteria, accion, mensaje){
+    const ts = nowISO();
 
-  try{
-    await fetch(API_HIST,{
+    const payload = {
+      cafeteria_id: String(cafeteria?.id ?? ""),
+      cafeteria_nombre: cafeteria?.nombre || "",
+      dispositivo_tipo: "ADMIN",
+      dispositivo_nombre: "Administración",
+      estado: accion || "",
+      alerta_activa: false,
+      mensaje: mensaje || "",
+      fecha_hora: ts,
+
+      /* Extras para compatibilidad (por si Monitoreo ordena por createdAt/updatedAt) */
+      createdAt: ts,
+      updatedAt: ts,
+
+      variables: {}
+    };
+
+    try{
+      await fetch(API_HIST,{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(payload)
+      });
+    }catch(e){
+      console.warn("No se pudo guardar historial ADMIN", e);
+    }
+  }
+
+  function plantillaCafeteria(nombreInput){
+    const suf = String(nombreInput || "").trim().toUpperCase();
+    const ts = nowISO();
+
+    return {
+      nombre: `CAFETERIA ${suf}`,
+      activa: true,
+      actualizado_en: ts,
+      dispositivos: {
+        cafetera: {
+          nombre: `CAFETERA ${suf}`,
+          tipo: "cafetera",
+          estado: "apagada",
+          variables: {
+            purga_on: false,
+            lanceta_on: false,
+            extraccion_on: false,
+            filtro_on: false,
+            agua_on: false,
+            agua_on_since: null,
+            filtro_on_since: null
+          },
+          alerta_activa: false,
+          mensaje_alerta: ""
+        },
+        crepera: {
+          nombre: `CREPERA ${suf}`,
+          tipo: "crepera",
+          estado: "en_espera",
+          variables: { temperatura_c: 0 },
+          alerta_activa: false,
+          mensaje_alerta: ""
+        },
+        molino: {
+          nombre: `MOLINO ${suf}`,
+          tipo: "molino",
+          estado: "molienda_medio",
+          variables: { molienda_tipo: "medio" },
+          alerta_activa: false,
+          mensaje_alerta: ""
+        }
+      }
+    };
+  }
+
+  async function getAll(){
+    const r = await fetch(API_CAF);
+    if(!r.ok) throw new Error("No se pudo leer cafeterias");
+    return await r.json();
+  }
+
+  function filaHTML(c){
+    return `
+      <tr>
+        <td class="text-white">${c.id ?? "—"}</td>
+        <td>
+          <div class="text-white fw-semibold">${c.nombre || "—"}</div>
+          <div class="text-white-50 small">
+            ${c.dispositivos?.cafetera?.nombre || ""} ·
+            ${c.dispositivos?.crepera?.nombre || ""} ·
+            ${c.dispositivos?.molino?.nombre || ""}
+          </div>
+        </td>
+        <td class="text-white-50">${c.activa ? "Sí" : "No"}</td>
+        <td class="text-white-50">${c.actualizado_en ? new Date(c.actualizado_en).toLocaleString() : "—"}</td>
+        <td>
+          <button type="button" class="btn btn-sm btn-warning fw-semibold" data-act="${c.id}">
+            ${c.activa ? "Dar de baja" : "Dar de alta"}
+          </button>
+          <button type="button" class="btn btn-sm btn-danger fw-semibold ms-2" data-del="${c.id}">
+            Eliminar
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+
+  async function putCafeteria(id, payload){
+    const r = await fetch(`${API_CAF}/${id}`,{
+      method:"PUT",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    });
+    if(!r.ok) throw new Error("No se pudo actualizar cafetería");
+    return await r.json();
+  }
+
+  async function eliminarCafeteria(id){
+    const r = await fetch(`${API_CAF}/${id}`, { method:"DELETE" });
+    if(!r.ok) throw new Error("No se pudo eliminar cafetería");
+  }
+
+  async function crearCafeteria(nombre){
+    const payload = plantillaCafeteria(nombre);
+    const r = await fetch(API_CAF,{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(payload)
     });
-  }catch(e){
-    console.warn("No se pudo guardar historial ADMIN", e);
+    if(!r.ok) throw new Error("No se pudo crear cafetería");
+    return await r.json();
   }
-}
 
-// Construye la cafetería con estructura final
-function plantillaCafeteria(nombreInput){
-  const suf = String(nombreInput || "").trim().toUpperCase();
-  return {
-    nombre: `CAFETERIA ${suf}`,
-    activa: true,
-    actualizado_en: nowISO(),
-    dispositivos: {
-      cafetera: {
-        nombre: `CAFETERA ${suf}`,
-        tipo: "cafetera",
-        estado: "apagada",
-        variables: {
-          purga_on: false,
-          lanceta_on: false,
-          extraccion_on: false,
-          filtro_on: false,
-          agua_on: false,
-          agua_on_since: null,
-          filtro_on_since: null
-        },
-        alerta_activa: false,
-        mensaje_alerta: ""
-      },
-      crepera: {
-        nombre: `CREPERA ${suf}`,
-        tipo: "crepera",
-        estado: "en_espera",
-        variables: { temperatura_c: 0 },
-        alerta_activa: false,
-        mensaje_alerta: ""
-      },
-      molino: {
-        nombre: `MOLINO ${suf}`,
-        tipo: "molino",
-        estado: "molienda_medio",
-        variables: { molienda_tipo: "medio" },
-        alerta_activa: false,
-        mensaje_alerta: ""
+  async function render(){
+    try{
+      const lista = await getAll();
+      setConexion(true);
+
+      const data = Array.isArray(lista) ? lista : [];
+      if(!$tbody) return;
+
+      if(!data.length){
+        $tbody.innerHTML = `<tr><td colspan="5" class="text-white-50">Sin cafeterías registradas.</td></tr>`;
+        return;
+      }
+
+      $tbody.innerHTML = data.map(filaHTML).join("");
+
+      // Dar de alta/baja
+      $tbody.querySelectorAll("[data-act]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-act");
+          const c = data.find(x => String(x.id) === String(id));
+          if(!c) return;
+
+          try{
+            const payload = { ...c, activa: !c.activa, actualizado_en: nowISO() };
+            const actualizado = await putCafeteria(id, payload);
+
+            await registrarHistorialAdmin(
+              actualizado,
+              actualizado.activa ? "Alta cafetería" : "Baja cafetería",
+              actualizado.activa ? "Cafetería activada" : "Cafetería desactivada"
+            );
+
+            await render();
+          }catch(e){
+            console.error(e);
+            alert("No se pudo actualizar. Revisa MockAPI.");
+          }
+        });
+      });
+
+      // Eliminar
+      $tbody.querySelectorAll("[data-del]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-del");
+          const c = data.find(x => String(x.id) === String(id));
+          if(!c) return;
+
+          if(!confirm("¿Eliminar esta cafetería? Esto borra el registro en MockAPI.")) return;
+
+          try{
+            await registrarHistorialAdmin(
+              c,
+              "Eliminar cafetería",
+              "Se eliminó cafetería del sistema"
+            );
+
+            await eliminarCafeteria(id);
+            await render();
+          }catch(e){
+            console.error(e);
+            alert("No se pudo eliminar. Revisa MockAPI.");
+          }
+        });
+      });
+
+    }catch(e){
+      console.error(e);
+      setConexion(false);
+      if($tbody){
+        $tbody.innerHTML = `<tr><td colspan="5" class="text-white-50">No se pudo cargar. Revisa MockAPI.</td></tr>`;
       }
     }
-  };
-}
+  }
 
-async function getAll(){
-  const r = await fetch(API_CAF);
-  if(!r.ok) throw new Error("No se pudo leer cafeterias");
-  return await r.json();
-}
-
-function filaHTML(c){
-  return `
-    <tr>
-      <td class="text-white">${c.id ?? "—"}</td>
-      <td>
-        <div class="text-white fw-semibold">${c.nombre || "—"}</div>
-        <div class="text-white-50 small">
-          ${c.dispositivos?.cafetera?.nombre || ""} ·
-          ${c.dispositivos?.crepera?.nombre || ""} ·
-          ${c.dispositivos?.molino?.nombre || ""}
-        </div>
-      </td>
-      <td class="text-white-50">${c.activa ? "Sí" : "No"}</td>
-      <td class="text-white-50">${c.actualizado_en ? new Date(c.actualizado_en).toLocaleString() : "—"}</td>
-      <td>
-        <button class="btn btn-sm btn-warning fw-semibold" data-act="${c.id}">
-          ${c.activa ? "Dar de baja" : "Dar de alta"}
-        </button>
-        <button class="btn btn-sm btn-danger fw-semibold ms-2" data-del="${c.id}">
-          Eliminar
-        </button>
-      </td>
-    </tr>
-  `;
-}
-
-async function putCafeteria(id, payload){
-  const r = await fetch(`${API_CAF}/${id}`,{
-    method:"PUT",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(payload)
-  });
-  if(!r.ok) throw new Error("No se pudo actualizar cafetería");
-  return await r.json();
-}
-
-async function eliminarCafeteria(id){
-  const r = await fetch(`${API_CAF}/${id}`, { method:"DELETE" });
-  if(!r.ok) throw new Error("No se pudo eliminar cafetería");
-}
-
-async function crearCafeteria(nombre){
-  const payload = plantillaCafeteria(nombre);
-  const r = await fetch(API_CAF,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(payload)
-  });
-  if(!r.ok) throw new Error("No se pudo crear cafetería");
-  return await r.json();
-}
-
-async function render(){
-  try{
-    const lista = await getAll();
-    setConexion(true);
-
-    const data = Array.isArray(lista) ? lista : [];
-    if(!$tbody) return;
-
-    if(!data.length){
-      $tbody.innerHTML = `<tr><td colspan="5" class="text-white-50">Sin cafeterías registradas.</td></tr>`;
+  $btnAgregar?.addEventListener("click", async ()=>{
+    const nombre = ($inNombre?.value || "").trim();
+    if(!nombre){
+      alert("Escribe un nombre (ej: ROSAS).");
       return;
     }
 
-    $tbody.innerHTML = data.map(filaHTML).join("");
+    try{
+      const nueva = await crearCafeteria(nombre);
 
-    // Dar de alta/baja
-    $tbody.querySelectorAll("[data-act]").forEach(btn=>{
-      btn.addEventListener("click", async ()=>{
-        const id = btn.getAttribute("data-act");
-        const c = data.find(x => String(x.id) === String(id));
-        if(!c) return;
+      await registrarHistorialAdmin(
+        nueva,
+        "Alta cafetería",
+        "Se creó nueva cafetería"
+      );
 
-        try{
-          const payload = { ...c, activa: !c.activa, actualizado_en: nowISO() };
-          const actualizado = await putCafeteria(id, payload);
-
-          await registrarHistorialAdmin(
-            actualizado,
-            actualizado.activa ? "Alta cafetería" : "Baja cafetería",
-            actualizado.activa ? "Cafetería activada" : "Cafetería desactivada"
-          );
-
-          await render();
-        }catch(e){
-          console.error(e);
-          alert("No se pudo actualizar. Revisa MockAPI.");
-        }
-      });
-    });
-
-    // Eliminar
-    $tbody.querySelectorAll("[data-del]").forEach(btn=>{
-      btn.addEventListener("click", async ()=>{
-        const id = btn.getAttribute("data-del");
-        const c = data.find(x => String(x.id) === String(id));
-        if(!c) return;
-
-        if(!confirm("¿Eliminar esta cafetería? Esto borra el registro en MockAPI.")) return;
-
-        try{
-          // 1) registrar en historial ANTES de borrar (para que quede evidencia)
-          await registrarHistorialAdmin(
-            c,
-            "Eliminar cafetería",
-            "Se eliminó cafetería del sistema"
-          );
-
-          // 2) borrar
-          await eliminarCafeteria(id);
-
-          await render();
-        }catch(e){
-          console.error(e);
-          alert("No se pudo eliminar. Revisa MockAPI.");
-        }
-      });
-    });
-
-  }catch(e){
-    console.error(e);
-    setConexion(false);
-    if($tbody){
-      $tbody.innerHTML = `<tr><td colspan="5" class="text-white-50">No se pudo cargar. Revisa MockAPI.</td></tr>`;
+      $inNombre.value = "";
+      await render();
+    }catch(e){
+      console.error(e);
+      alert("No se pudo crear. Revisa tu MockAPI (límite/free plan, etc.).");
     }
-  }
-}
+  });
 
-$btnAgregar?.addEventListener("click", async ()=>{
-  const nombre = ($inNombre?.value || "").trim();
-  if(!nombre){
-    alert("Escribe un nombre (ej: ROSAS).");
-    return;
-  }
-
-  try{
-    const nueva = await crearCafeteria(nombre);
-
-    await registrarHistorialAdmin(
-      nueva,
-      "Alta cafetería",
-      "Se creó nueva cafetería"
-    );
-
-    $inNombre.value = "";
-    await render();
-  }catch(e){
-    console.error(e);
-    alert("No se pudo crear. Revisa tu MockAPI (límite/free plan, etc.).");
-  }
+  render();
 });
-
-render();
   </script>
 </body>
 </html>

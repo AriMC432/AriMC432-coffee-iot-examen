@@ -42,9 +42,9 @@ Cada dispositivo puede ser controlado mediante interruptores y su estado se guar
 
 ### 🔔 Reglas de negocio
 
-- Alerta si agua abierta > 15 segundos
-- Alerta si filtro ocupado > 15 segundos
-- Alerta si crepera > 35°C
+- Alerta si agua abierta > 30 segundos
+- Alerta si filtro ocupado > 30 segundos
+- Alerta si crepera > 235°C
 - Cada cafetería tiene sus propios dispositivos
 - Refresco automático cada 2 segundos
 
