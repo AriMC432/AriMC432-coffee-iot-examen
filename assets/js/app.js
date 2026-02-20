@@ -1,22 +1,23 @@
 // =======================
-// HOME (index) - app.js  ✅ para /cafeterias
+// HOME (index) - app.js ✅ Dashboard Resumen (SIN BOTONES)
+// - Lee /cafeterias
+// - Pinta resumen en #contenedorResumen
+// - KPIs: #kpi_total, #kpi_activas, #kpi_alertas
+// - Refresco: 2s
 // =======================
 
 const API_BASE = "https://698a18b7c04d974bc6a1598e.mockapi.io/api/v1";
 const API_CAFETERIAS = `${API_BASE}/cafeterias`;
 
-// DOM
-const $contenedor = document.getElementById("contenedorDispositivos");
+// DOM (index)
+const $contenedorResumen = document.getElementById("contenedorResumen");
 const $estadoConexion = document.getElementById("estadoConexion");
-const $apiBase = document.getElementById("apiBase");
 const $btnRecargar = document.getElementById("btnRecargar");
 
-// KPIs (opcionales)
-const $kpiDispositivos = document.getElementById("kpiDispositivos");
-const $kpiAlertas = document.getElementById("kpiAlertas");
-const $kpiActualizacion = document.getElementById("kpiActualizacion");
-
-if ($apiBase) $apiBase.textContent = API_BASE;
+// KPIs (index)
+const $kpiTotal = document.getElementById("kpi_total");
+const $kpiActivas = document.getElementById("kpi_activas");
+const $kpiAlertas = document.getElementById("kpi_alertas");
 
 // =======================
 // Helpers
@@ -32,9 +33,8 @@ function setConexion(ok) {
   }
 }
 
-function horaCorta(iso) {
-  if (!iso) return "—";
-  try { return new Date(iso).toLocaleTimeString(); } catch { return "—"; }
+function norm(s) {
+  return String(s ?? "").trim();
 }
 
 function fechaCorta(iso) {
@@ -42,175 +42,87 @@ function fechaCorta(iso) {
   try { return new Date(iso).toLocaleString(); } catch { return "—"; }
 }
 
-function norm(s) {
-  return String(s ?? "").trim();
-}
-
-function tipoBonito(t) {
-  t = norm(t).toLowerCase();
-  if (t === "cafetera") return "Cafetera";
-  if (t === "crepera") return "Crepera";
-  if (t === "molino") return "Molino";
-  return t || "—";
-}
-
-// =======================
-// “Bonito” por dispositivo
-// =======================
-const CAF_ITEMS = [
-  { key: "purga", label: "Purgación de lanceta" },
-  { key: "lanceta", label: "Lanceta para cremar leche" },
-  { key: "extraccion", label: "Extracción del café" },
-  { key: "filtro", label: "Filtro de café" },
-  { key: "agua", label: "Salida de agua caliente" }
-];
-
-function textoCafeteraBonito(d) {
-  const v = d?.variables || {};
-  const activos = CAF_ITEMS
-    .filter(it => Boolean(v[`${it.key}_on`]))
-    .map(it => it.label);
-
-  if (!activos.length) return "apagada";
-  return `encendida: ${activos.join(", ")}`;
-}
-
-function textoCreperaBonito(d) {
-  const t = Number(d?.variables?.temperatura_c ?? 0);
-  if (t === 0) return `apagada — 0°C`;
-  return `${norm(d?.estado) || "—"} — ${t}°C`;
-}
-
-function textoMolinoBonito(d) {
-  const estado = norm(d?.estado);
-  const tipo = norm(d?.variables?.molienda_tipo);
-  if (estado) return estado;                 // ej: molienda_medio
-  if (tipo) return `molienda_${tipo}`;       // ej: molienda_fino
-  return "molienda_medio";
-}
-
-function estadoBonito(d) {
-  const tipo = norm(d?.tipo).toLowerCase();
-  if (tipo === "cafetera") return textoCafeteraBonito(d);
-  if (tipo === "crepera") return textoCreperaBonito(d);
-  if (tipo === "molino") return textoMolinoBonito(d);
-  return norm(d?.estado) || "—";
-}
-
 function hayAlerta(d) {
   return Boolean(d?.alerta_activa);
 }
 
-function msgAlerta(d) {
-  return norm(d?.mensaje_alerta);
+function contarAlertasCafeteria(caf) {
+  const d = caf?.dispositivos || {};
+  const arr = [d.cafetera, d.crepera, d.molino].filter(Boolean);
+  return arr.filter(hayAlerta).length;
 }
 
-function badgePunto(alerta, estadoTxt) {
-  if (alerta) return "alerta";
-  if ((estadoTxt || "").toLowerCase().includes("apagada")) return "apagada";
-  return "";
+function badgeActiva(activa) {
+  if (activa) return `<span class="badge rounded-pill text-bg-success">Activa</span>`;
+  return `<span class="badge rounded-pill text-bg-secondary">Inactiva</span>`;
+}
+
+function badgeAlertas(n) {
+  const cls = n > 0 ? "text-bg-warning" : "text-bg-info";
+  return `<span class="badge rounded-pill ${cls}">Alertas: ${n}</span>`;
 }
 
 // =======================
-// Render de cafeterías (cada una trae 3 dispositivos)
+// Render resumen cafeterías (SIN botones)
 // =======================
-function cardDispositivoHTML(d) {
-  const estadoTxt = estadoBonito(d);
-  const alerta = hayAlerta(d);
-  const punto = badgePunto(alerta, estadoTxt);
-  const msg = msgAlerta(d);
-
-  return `
-    <div class="mini-card">
-      <div class="d-flex justify-content-between align-items-start">
-        <div>
-          <div class="text-white-50 small">${tipoBonito(d?.tipo)}</div>
-          <div class="text-white fw-semibold">${norm(d?.nombre) || "—"}</div>
-        </div>
-        <div class="text-white-50 small">
-          <span class="punto ${punto}"></span>
-        </div>
-      </div>
-
-      <div class="text-white mt-1">
-        ${alerta ? `<span class="estado estado-alerta">ALERTA</span>` : `<span class="estado">${estadoTxt}</span>`}
-      </div>
-
-      ${msg ? `<div class="text-warning small mt-1">⚠ ${msg}</div>` : ``}
-    </div>
-  `;
-}
-
-function cardCafeteriaHTML(caf) {
+function cardCafeteriaResumenHTML(caf) {
   const nombre = norm(caf?.nombre) || "CAFETERÍA";
   const activa = Boolean(caf?.activa);
+  const alertas = contarAlertasCafeteria(caf);
 
-  const disp = caf?.dispositivos || {};
-  const lista = [disp.cafetera, disp.crepera, disp.molino].filter(Boolean);
-
-  const alertasActivas = lista.filter(hayAlerta).length;
+  const actualizado = caf?.actualizado_en || caf?.updatedAt || caf?.createdAt || null;
+  const id = caf?.id ?? "—";
 
   return `
     <div class="col-12">
-      <div class="tarjeta-dispositivo borde-dorado">
-        <div class="d-flex justify-content-between align-items-start">
+      <div class="tarjeta-vidrio p-3">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+
           <div>
-            <div class="etiqueta-tipo">Cafetería</div>
-            <div class="h5 text-white mb-0">${nombre}</div>
-            <div class="text-white-50 small mt-1">
-              ${activa ? "Activa" : "Inactiva"} · Alertas: ${alertasActivas}
+            <div class="text-white fw-semibold fs-5">${nombre}</div>
+            <div class="text-white-50 small">
+              ID: ${id} · Actualizado: ${actualizado ? fechaCorta(actualizado) : "—"}
             </div>
           </div>
-          <div class="text-white-50 small">
-            ID: ${caf?.id ?? "—"}<br>
-            ${caf?.actualizado_en ? `Act.: ${horaCorta(caf.actualizado_en)}` : ""}
+
+          <div class="d-flex gap-2 flex-wrap align-items-center">
+            ${badgeActiva(activa)}
+            ${badgeAlertas(alertas)}
           </div>
+
         </div>
 
-        <div class="grid-3 mt-3">
-          ${lista.map(cardDispositivoHTML).join("")}
+        <div class="text-white-50 small mt-2">
+          ${activa
+            ? `Operación disponible en <b>Control</b>. Historial/alertas en <b>Monitoreo</b>.`
+            : `Esta cafetería está en baja. Puedes activarla desde <b>Admin</b>.`
+          }
         </div>
       </div>
     </div>
   `;
 }
 
-function renderCafeterias(data) {
-  if (!$contenedor) return;
+function renderResumen(lista) {
+  if (!$contenedorResumen) return;
 
-  const lista = Array.isArray(data) ? data : [];
-  $contenedor.innerHTML = "";
+  const arr = Array.isArray(lista) ? lista : [];
 
   // KPIs
-  const totalCaf = lista.length;
+  const total = arr.length;
+  const activas = arr.filter(x => Boolean(x?.activa)).length;
+  const alertas = arr.reduce((acc, c) => acc + contarAlertasCafeteria(c), 0);
 
-  // total “dispositivos” = cafeterías * 3 (si existen)
-  const totalDisp = lista.reduce((acc, c) => {
-    const d = c?.dispositivos || {};
-    return acc + (d.cafetera ? 1 : 0) + (d.crepera ? 1 : 0) + (d.molino ? 1 : 0);
-  }, 0);
+  if ($kpiTotal) $kpiTotal.textContent = String(total);
+  if ($kpiActivas) $kpiActivas.textContent = String(activas);
+  if ($kpiAlertas) $kpiAlertas.textContent = String(alertas);
 
-  const totalAlertas = lista.reduce((acc, c) => {
-    const d = c?.dispositivos || {};
-    const arr = [d.cafetera, d.crepera, d.molino].filter(Boolean);
-    return acc + arr.filter(hayAlerta).length;
-  }, 0);
-
-  const ultima = lista
-    .map(x => x?.actualizado_en)
-    .filter(Boolean)
-    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
-
-  if ($kpiDispositivos) $kpiDispositivos.textContent = String(totalDisp);
-  if ($kpiAlertas) $kpiAlertas.textContent = String(totalAlertas);
-  if ($kpiActualizacion) $kpiActualizacion.textContent = ultima ? horaCorta(ultima) : "—";
-
-  if (!lista.length) {
-    $contenedor.innerHTML = `<div class="text-white-50">No hay cafeterías registradas.</div>`;
+  if (!arr.length) {
+    $contenedorResumen.innerHTML = `<div class="text-white-50">No hay cafeterías registradas. Ve a <b>Admin</b> y agrega una.</div>`;
     return;
   }
 
-  $contenedor.innerHTML = lista.map(cardCafeteriaHTML).join("");
+  $contenedorResumen.innerHTML = arr.map(cardCafeteriaResumenHTML).join("");
 }
 
 // =======================
@@ -223,27 +135,28 @@ async function cargarCafeterias() {
       $estadoConexion.className = "badge rounded-pill text-bg-warning";
     }
 
-    const resp = await fetch(API_CAFETERIAS);
+    const resp = await fetch(API_CAFETERIAS, { cache: "no-store" });
     if (!resp.ok) throw new Error("No se pudo leer /cafeterias");
 
     const data = await resp.json();
-    renderCafeterias(data);
-
+    renderResumen(data);
     setConexion(true);
   } catch (e) {
     console.error(e);
     setConexion(false);
 
-    if ($contenedor) {
-      $contenedor.innerHTML = `<div class="text-white-50">No se pudo cargar. Revisa MockAPI y la URL.</div>`;
+    if ($contenedorResumen) {
+      $contenedorResumen.innerHTML = `<div class="text-white-50">No se pudo cargar. Revisa MockAPI y la URL.</div>`;
     }
-    if ($kpiDispositivos) $kpiDispositivos.textContent = "—";
+
+    if ($kpiTotal) $kpiTotal.textContent = "—";
+    if ($kpiActivas) $kpiActivas.textContent = "—";
     if ($kpiAlertas) $kpiAlertas.textContent = "—";
-    if ($kpiActualizacion) $kpiActualizacion.textContent = "—";
   }
 }
 
-// Botón + auto refresh
+// Botón + auto refresh (2s)
 if ($btnRecargar) $btnRecargar.addEventListener("click", cargarCafeterias);
+
 cargarCafeterias();
 setInterval(cargarCafeterias, 2000);

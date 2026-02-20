@@ -258,7 +258,25 @@
   padding: 2px 8px;
   border-radius: 999px;
 }
+/* ===== FOOTER FIJO ABAJO SIN TAPAR CONTENIDO ===== */
+
+html, body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* tu contenido principal */
+main {
+  flex: 1;
+}
+
+/* tu footer con tu estilo */
 .footer-cafe{
   background: rgba(0,0,0,0.35);
   border-top: 1px solid rgba(255,255,255,0.1);
+  margin-top: auto;   /* 👈 esto lo empuja hasta abajo */
 }
