@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Panel IoT Cafetería</title>
+
+  <!-- ✅ FAVICON (ya lo tienes) -->
   <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
 
   <!-- Bootstrap -->
@@ -41,6 +43,44 @@
       border-radius: 18px;
       padding: 14px 16px;
     }
+
+    /* ✅ Logo en navbar (a la izquierda antes de Coffee IoT) */
+    .brand-logo{
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      object-fit: cover;
+      box-shadow: 0 6px 16px rgba(0,0,0,.25);
+    }
+
+    /* ✅ Imagen debajo del título */
+    .hero-img{
+      width: 100%;
+      max-width: 680px;
+      height: 300px;
+      object-fit: cover;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 14px 32px rgba(0,0,0,.35);
+    }
+
+    /* ✅ Icono LinkedIn */
+    .lnk-linkedin{
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      color: rgba(255,255,255,.85);
+      text-decoration:none;
+    }
+    .lnk-linkedin:hover{
+      color: #ffffff;
+      text-decoration: underline;
+    }
+    .lnk-ico{
+      width: 18px;
+      height: 18px;
+      display:inline-block;
+    }
   </style>
 </head>
 
@@ -49,7 +89,12 @@
 <!-- NAV -->
 <nav class="navbar navbar-expand-lg navbar-dark barra-cafe">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="index.html">Coffee IoT</a>
+
+    <!-- ✅ Logo (favico.ico) + texto -->
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="index.html">
+        <img src="assets/img/favicon.ico" alt="Logo" class="brand-logo">
+      <span>Coffee IoT</span>
+    </a>
 
     <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav">
       <span class="navbar-toggler-icon"></span>
@@ -63,6 +108,7 @@
         <li class="nav-item"><a class="nav-link" href="monitoreo.html">Monitoreo</a></li>
       </ul>
     </div>
+
   </div>
 </nav>
 
@@ -80,9 +126,10 @@
             Panel IoT de Cafetería
           </h1>
 
-          <p class="text-white-50">
-            Dashboard general — para operar usa <b>Control</b> y para auditoría <b>Monitoreo</b>.
-          </p>
+          <!-- ✅ Imagen debajo del título -->
+          <div class="mt-3">
+            <img src="assets/img/coffe,crepa,grano.jpeg" class="hero-img" alt="Coffee, crepa y granos">
+          </div>
 
           <div class="d-flex justify-content-center gap-2 mt-3 flex-wrap">
             <button class="btn btn-light fw-semibold" id="btnRecargar">
@@ -133,7 +180,7 @@
         <div class="tarjeta-vidrio p-4">
 
           <h5 class="text-white text-center mb-3">
-            Resumen rápido por cafetería
+            Resumen por cafetería
           </h5>
 
           <div id="contenedorResumen" class="row g-3">
@@ -153,11 +200,16 @@
   <div class="container text-center text-white-50 small">
     <div>Coffee IoT · Panel de control y monitoreo · 2026</div>
     <div>Autor: Ariana Muñoz Castillo</div>
-    <div>
-      <a href="https://www.linkedin.com/in/ariana-muñoz-castillo-0a817b381"
-         target="_blank"
-         class="text-white text-decoration-none">
-        Linkedin Ariana Muñoz Castillo
+
+    <!-- ✅ Icono LinkedIn + link -->
+    <div class="mt-2">
+      <a class="lnk-linkedin"
+         href="https://www.linkedin.com/in/ariana-muñoz-castillo-0a817b381"
+         target="_blank" rel="noopener">
+        <svg class="lnk-ico" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.852 3.369-1.852 3.6 0 4.266 2.37 4.266 5.455v6.288zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zM6.814 20.452H3.86V9h2.954v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+        </svg>
+        <span>LinkedIn: Ariana Muñoz Castillo</span>
       </a>
     </div>
   </div>
